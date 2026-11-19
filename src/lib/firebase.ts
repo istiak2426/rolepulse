@@ -57,6 +57,14 @@ export const googleSignIn = async (): Promise<{
     }
     cachedAccessToken = credential.accessToken;
     return { user: result.user, accessToken: cachedAccessToken };
+  } catch (err: any) {
+    if (err?.code === 'auth/unauthorized-domain') {
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+      throw new Error(
+        `ডোমেইনটি (${host}) Firebase Auth-এ অনুমোদিত নয়। Firebase Console → Authentication → Settings → Authorized domains-এ "${host}" যোগ করুন।`
+      );
+    }
+    throw err;
   } finally {
     isSigningIn = false;
   }
