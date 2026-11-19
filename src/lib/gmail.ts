@@ -1,5 +1,4 @@
 import type { ApplicationRecord, PendingEmailDraft } from '../types';
-import { STATUS_LABELS_BN, WORK_MODE_LABELS_BN, formatSalaryBn } from './bn';
 
 function encodeBase64Url(input: string): string {
   const bytes = new TextEncoder().encode(input);
@@ -48,7 +47,7 @@ export async function sendGmailMessage(params: {
   if (!response.ok) {
     const errPayload = await response.json().catch(() => ({}));
     const message =
-      errPayload?.error?.message || `Gmail API ত্রুটি (HTTP ${response.status})`;
+      errPayload?.error?.message || `Gmail API error (HTTP ${response.status})`;
     throw new Error(message);
   }
 
@@ -60,7 +59,19 @@ export function formatSalaryRange(
   max: number | null,
   currency: string = 'BDT'
 ): string {
-  return formatSalaryBn(min, max, currency);
+  if (min === null && max === null) return 'Not disclosed';
+  const fmt = (val: number) =>
+    currency === 'BDT'
+      ? `৳${val.toLocaleString('en-US')}`
+      : `$${Math.round(val / 1000)}k`;
+
+  if (min !== null && max !== null && min !== max) {
+    return `${fmt(min)} – ${fmt(max)}${currency === 'BDT' ? '/mo' : ''}`;
+  }
+  if (min !== null && max === null) {
+    return `${fmt(min)} – Max${currency === 'BDT' ? '/mo' : ''}`;
+  }
+  return `${fmt((min ?? max) as number)}${currency === 'BDT' ? '/mo' : ''}`;
 }
 
 export function buildSubmissionEmailDraft(
@@ -69,8 +80,8 @@ export function buildSubmissionEmailDraft(
 ): PendingEmailDraft {
   const isBatch = applications.length > 1;
   const subject = isBatch
-    ? `RolePulse: স্বয়ংক্রিয়ভাবে ${applications.length}টি চাকরির আবেদন জমা হয়েছে`
-    : `RolePulse: আবেদন জমা হয়েছে — ${applications[0].jobTitle} (${applications[0].company})`;
+    ? `RolePulse: Auto-applied to ${applications.length} matching jobs`
+    : `RolePulse: Application Submitted — ${applications[0].jobTitle} (${applications[0].company})`;
 
   const summaryLines = applications.map(
     (app) =>
@@ -78,38 +89,38 @@ export function buildSubmissionEmailDraft(
         app.salaryMin,
         app.salaryMax,
         app.salaryCurrency || 'BDT'
-      )} · ${app.skillMatchPct}% দক্ষতা মিল)`
+      )} · ${app.skillMatchPct}% skill match)`
   );
 
   const detailsBlock = applications
     .map(
       (app, idx) =>
         `${idx + 1}. ${app.jobTitle} — ${app.company}\n` +
-        `   অবস্থান: ${app.location} (${WORK_MODE_LABELS_BN[app.workMode]})\n` +
-        `   বেতন পরিসীমা: ${formatSalaryRange(
+        `   Location: ${app.location} (${app.workMode})\n` +
+        `   Salary Range: ${formatSalaryRange(
           app.salaryMin,
           app.salaryMax,
           app.salaryCurrency || 'BDT'
         )}\n` +
-        `   মিলে যাওয়া দক্ষতা: ${app.matchedSkills.join(', ') || 'সাধারণ সামঞ্জস্য'}\n` +
-        `   সংযুক্ত রিজিউমি: ${app.resumeFilename}\n` +
-        `   পরবর্তী ফলো-আপ: ${
-          app.nextFollowUpAt ? app.nextFollowUpAt.slice(0, 10) : 'নির্ধারিত নয়'
+        `   Matched Skills: ${app.matchedSkills.join(', ') || 'General match'}\n` +
+        `   Attached Resume: ${app.resumeFilename}\n` +
+        `   Next Follow-Up: ${
+          app.nextFollowUpAt ? app.nextFollowUpAt.slice(0, 10) : 'Not scheduled'
         }\n` +
-        `   চাকরির লিংক: ${app.applyUrl}`
+        `   Job Link: ${app.applyUrl}`
     )
     .join('\n\n');
 
   const bodyText =
-    `হ্যালো,\n\n` +
+    `Hello,\n\n` +
     `${
       isBatch
-        ? `আপনার নির্ধারিত দক্ষতা ও বেতন পরিসীমার সাথে সামঞ্জস্যপূর্ণ ${applications.length}টি চাকরিতে RolePulse স্বয়ংক্রিয়ভাবে আবেদন জমা দিয়েছে:`
-        : `${applications[0].company}-এ "${applications[0].jobTitle}" পদের জন্য RolePulse আপনার আবেদন জমা দিয়েছে:`
+        ? `RolePulse automatically submitted ${applications.length} job applications matching your skills and salary criteria:`
+        : `RolePulse submitted your application for "${applications[0].jobTitle}" at ${applications[0].company}:`
     }\n\n` +
     `${detailsBlock}\n\n` +
-    `আবেদনের বর্তমান অবস্থা এবং ফলো-আপ অনুস্মারক দেখতে আপনার RolePulse ড্যাশবোর্ডে প্রবেশ করুন।\n\n` +
-    `— RolePulse আবেদন ট্র্যাকার`;
+    `Visit your RolePulse dashboard anytime to review application statuses and follow-up reminders.\n\n` +
+    `— RolePulse Application Tracker`;
 
   return {
     id: `draft_${Date.now()}`,
@@ -127,30 +138,29 @@ export function buildStatusUpdateEmailDraft(
   previousStatus: string,
   recipient: string
 ): PendingEmailDraft {
-  const prevLabel =
-    STATUS_LABELS_BN[previousStatus as keyof typeof STATUS_LABELS_BN] || previousStatus;
-  const currLabel = STATUS_LABELS_BN[application.status] || application.status;
+  const prevLabel = previousStatus;
+  const currLabel = application.status;
 
-  const subject = `RolePulse: আবেদনের অবস্থা "${currLabel}"-এ হালনাগাদ হয়েছে — ${application.jobTitle} (${application.company})`;
+  const subject = `RolePulse: Application Status Updated to "${currLabel}" — ${application.jobTitle} (${application.company})`;
 
   const bodyText =
-    `হ্যালো,\n\n` +
-    `আপনার RolePulse পাইপলাইনে একটি আবেদনের অবস্থা হালনাগাদ করা হয়েছে:\n\n` +
-    `পদবি: ${application.jobTitle}\n` +
-    `প্রতিষ্ঠান: ${application.company}\n` +
-    `পূর্ববর্তী ধাপ: ${prevLabel}\n` +
-    `বর্তমান ধাপ: ${currLabel}\n` +
-    `বেতন পরিসীমা: ${formatSalaryRange(
+    `Hello,\n\n` +
+    `An application status in your RolePulse pipeline has been updated:\n\n` +
+    `Role: ${application.jobTitle}\n` +
+    `Company: ${application.company}\n` +
+    `Previous Stage: ${prevLabel}\n` +
+    `Current Stage: ${currLabel}\n` +
+    `Salary Range: ${formatSalaryRange(
       application.salaryMin,
       application.salaryMax,
       application.salaryCurrency || 'BDT'
     )}\n` +
-    `পরবর্তী ফলো-আপ: ${
-      application.nextFollowUpAt ? application.nextFollowUpAt.slice(0, 10) : 'নির্ধারিত নয়'
+    `Next Follow-Up: ${
+      application.nextFollowUpAt ? application.nextFollowUpAt.slice(0, 10) : 'Not scheduled'
     }\n` +
-    `${application.notes ? `নোট: ${application.notes}\n` : ''}\n` +
-    `চাকরির লিংক: ${application.applyUrl}\n\n` +
-    `— RolePulse আবেদন ট্র্যাকার`;
+    `${application.notes ? `Notes: ${application.notes}\n` : ''}\n` +
+    `Job Link: ${application.applyUrl}\n\n` +
+    `— RolePulse Application Tracker`;
 
   return {
     id: `draft_${Date.now()}`,

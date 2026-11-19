@@ -109,12 +109,12 @@ export const ApplicationDrawer: React.FC<ApplicationDrawerProps> = ({
   };
 
   const handleComposeRecruiterFollowUp = () => {
-    const subject = `ফলো-আপ: ${application.company}-এ ${application.jobTitle} পদে আবেদন`;
+    const subject = `Follow-up: ${application.jobTitle} Application at ${application.company}`;
     const body =
-      `হ্যালো ${recruiterName || 'নিয়োগ টিম'},\n\n` +
-      `আশা করি ভালো আছেন। গত ${application.appliedAt.slice(0, 10)} তারিখে ${application.company}-এ "${application.jobTitle}" পদের জন্য জমা দেওয়া আমার আবেদনটি সম্পর্কে ফলো-আপ করতে লিখছি।\n\n` +
-      `${application.matchedSkills.slice(0, 4).join(', ') || 'সফটওয়্যার ইঞ্জিনিয়ারিং'} বিষয়ে আমার বাস্তব অভিজ্ঞতা কীভাবে আপনার টিমে অবদান রাখতে পারে, তা নিয়ে আলোচনা করার সুযোগ পেলে আনন্দিত হব।\n\n` +
-      `শুভেচ্ছাসহ,\n`;
+      `Hello ${recruiterName || 'Hiring Team'},\n\n` +
+      `I hope you are doing well. I am writing to follow up on my application for the "${application.jobTitle}" position at ${application.company}, submitted on ${application.appliedAt.slice(0, 10)}.\n\n` +
+      `I would welcome the opportunity to discuss how my experience with ${application.matchedSkills.slice(0, 4).join(', ') || 'software and systems engineering'} can contribute to your team.\n\n` +
+      `Best regards,\n`;
     onSendFollowUpEmail(application, subject, body);
   };
 

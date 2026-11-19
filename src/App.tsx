@@ -504,10 +504,10 @@ export default function App() {
       id: `test_${Date.now()}`,
       trigger: 'Test Alert',
       recipient: recipient || getNotificationRecipient(),
-      subject: 'RolePulse: পরীক্ষামূলক Gmail বিজ্ঞপ্তি',
+      subject: 'RolePulse: Test Gmail Notification',
       bodyText:
-        'হ্যালো,\n\nএটি RolePulse থেকে পাঠানো একটি পরীক্ষামূলক ইমেইল, যা নিশ্চিত করছে যে আপনার আবেদন জমা ও অবস্থা হালনাগাদের Gmail বিজ্ঞপ্তি সক্রিয় রয়েছে।\n\n— RolePulse আবেদন ট্র্যাকার',
-      summaryLines: ['RolePulse বিজ্ঞপ্তি ব্যবস্থার পরীক্ষামূলক ইমেইল'],
+        'Hello,\n\nThis is a test email from RolePulse confirming that your Gmail notifications for application submissions and status updates are active.\n\n— RolePulse Application Tracker',
+      summaryLines: ['RolePulse test email notification'],
     });
   };
 
