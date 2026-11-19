@@ -1,0 +1,6 @@
+{
+  "name": "RolePulse",
+  "description": "Automated LinkedIn job discovery, skill and salary filtering, resume auto-apply, centralized application tracking, and Gmail status alerts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
